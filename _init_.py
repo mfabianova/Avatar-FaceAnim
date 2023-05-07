@@ -824,7 +824,7 @@ class MyProperties(bpy.types.PropertyGroup):
     show_names: bpy.props.BoolProperty(name = "Show names", default = False, update=update_bool, description="Show names of bones")
     show_shapes: bpy.props.BoolProperty(name = "Show shapes", default = True, update=update_bool, description="Show shapes of the bones")
     show_col: bpy.props.BoolProperty(name = "Show group colors", default = True, update=update_bool, description="Show group colors of bones")
-    show_front: bpy.props.BoolProperty(name = "Show in front", default = True,update=update_bool, description="Show bones in front of their assigned mesh")
+    show_front: bpy.props.BoolProperty(name = "Show in front", default = True,update=update_bool, description="Show bones in front of their assigned mesh. Only available when armature has been chosen.")
     show_axes: bpy.props.BoolProperty(name = "Show axes", default = False, update = update_bool, description="Show local axes of bones")
     #float pre offset osi ktore sa zobrazuju
     axes_offset: bpy.props.FloatProperty(name = "Offset: ", default = 0, precision=2, min = 0, max = 1, update=update_bool, description="Change position of the bone axes. Increasing value moves them to the tip of the bone, decreasing moves them towards the head.")
@@ -1020,6 +1020,9 @@ class SingleKeyframeButton(bpy.types.Operator):
 
     #vlozi sa jeden keyframe na snimku kde ma pouzivatel ukazovatel, typ, ktory si vybral, pre vsetky kosti
     def execute(self, context):
+        if not isRunning:
+            self.report({"WARNING"}, "Please start capture to create animation")
+            return {"CANCELLED"}
         global kf_type
         bpy.ops.pose.select_all(action='SELECT')
         kf_type = bpy.context.scene.my_tool.keyframe_enum #precitanie, ktory typ keyframeu je vybrany
@@ -1036,6 +1039,9 @@ class ContKeyframeButton(bpy.types.Operator):
 
     #spusti sa vkladanie keyframov pomocou zmeny bool premennej isRecording
     def execute(self, context):
+        if not isRunning:
+            self.report({"WARNING"}, "Please start capture to create animation")
+            return {"CANCELLED"}
         global isRecording
         global kf_type
         kf_type = bpy.context.scene.my_tool.keyframe_enum 
