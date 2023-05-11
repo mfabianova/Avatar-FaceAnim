@@ -208,8 +208,6 @@ def calibrate(context):
 
         # face detection
         full_lm = get_face_lm(flipped)
-        if full_lm is None: 
-            continue
         
         # determining d1 after c key is pressed
         if(cv2.waitKey(1) & 0xFF == ord('c')):
@@ -303,6 +301,9 @@ def get_face_lm(_frame):
     _frame.flags.writeable = False # improve perf
     landmarks = faceMesh.process(rgbFrame) # detection
     _frame.flags.writeable = True
+
+    if landmarks.multi_face_landmarks is None:
+        return None
     
     full_lm = landmarks.multi_face_landmarks[0] 
     return full_lm 
@@ -757,6 +758,10 @@ class ModalTimerOperator(bpy.types.Operator):
             flipped = cv2.flip(frame,1)
 
             full_lm = get_face_lm(flipped) # detection
+            if full_lm is None:
+                cv2.imshow('CameraVideo', flipped) 
+                return {'PASS_THROUGH'}
+            
             smooth_lm, dx_list = one_euro(np.array([(lm.x, lm.y, lm.z) for lm in full_lm.landmark]), self.isFirst,self.dx_hat_prev_face, self.x_hat_prev_face) #smoothing
 
             if len(smooth_lm) != 0: # if detected
@@ -776,9 +781,6 @@ class ModalTimerOperator(bpy.types.Operator):
             # frame display
             cv2.putText(flipped, "fps = " + str(fps), (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (0,255,0), thickness = 3)
             cv2.imshow('CameraVideo', flipped) 
-            if full_lm is None:
-                return {'PASS_THROUGH'}
-            
             
             # determining current distance of user from camera
             eye_centerR = ((smooth_lm[159][0] + smooth_lm[145][0])*width/2, (smooth_lm[159][1] + smooth_lm[145][1])*height/2, (smooth_lm[159][2] + smooth_lm[145][2])*width/2) #priemer landmarkov 159 a 145
