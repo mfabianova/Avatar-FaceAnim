@@ -44,17 +44,12 @@ class install_dependencies_operator(bpy.types.Operator):
 
         subprocess.call([python_exe, '-m', 'pip', 'install', '--upgrade', '--no-warn-script-location', 'pip'], env=environ_copy)
         
-        # attempts to import packages, if fails, install and import again
+        # attempts to import packages
         try:
             globals()['cv2'] = importlib.import_module('cv2')
-            print("imported cv2")
         except ModuleNotFoundError:
             subprocess.call([python_exe, '-m', 'pip', 'install', '--upgrade', 'opencv-contrib-python'], env=environ_copy)
 
-            globals()['cv2'] = importlib.import_module('cv2')
-            print("imported cv2")
-            print("didnt import cv2")
-
         try:
             globals()['mp'] = importlib.import_module('mediapipe')
 
@@ -62,28 +57,26 @@ class install_dependencies_operator(bpy.types.Operator):
             globals()['landmark_pb2'] = tmpmodule.landmark_pb2
             del tmpmodule
 
-            print("import mediapipe and landmark_pb2")
         except ModuleNotFoundError:
             subprocess.call([python_exe, '-m', 'pip', 'install', '--upgrade', 'mediapipe'], env=environ_copy)
 
-            globals()['mp'] = importlib.import_module('mediapipe')
-            tmpmodule = importlib.import_module('mediapipe.framework.formats')
-            globals()['landmark_pb2'] = tmpmodule.landmark_pb2
-            del tmpmodule
-            print("didnt import mediapipe or landmark_pb2")
-
         try:
+            globals()['pyquaternion'] = importlib.import_module('pyquaternion')
+
             tmpmodule = importlib.import_module('pyquaternion')
             globals()['Quaternion'] = tmpmodule.Quaternion
             del tmpmodule
-            print("pyquaternion imported")
         except ModuleNotFoundError:
             subprocess.call([python_exe, '-m', 'pip', 'install', '--upgrade', 'pyquaternion'], env=environ_copy)
 
-            tmpmodule = importlib.import_module('pyquaternion')
-            globals()['Quaternion'] = tmpmodule.Quaternion
-            del tmpmodule
+        #face detection variables initialization
+        global mpFaceMesh
+        global faceMesh
+        global mpDraw
 
+        mpFaceMesh = mp.solutions.mediapipe.solutions.face_mesh
+        faceMesh = mpFaceMesh.FaceMesh(static_image_mode = False, max_num_faces=1, refine_landmarks = True) 
+        mpDraw = mp.solutions.mediapipe.solutions.drawing_utils
 
         return {"FINISHED"}
 
@@ -135,6 +128,12 @@ polygon_edit = [] # polygon v priestore avatara
 rec_animation = [] # list of recorded keyframes
 
 error_message = '' 
+
+#variables for face detection
+mpFaceMesh = None
+faceMesh = None
+mpDraw = None
+
 
 
 #------------------------------------------functiohs-------------------------------------------------------
@@ -294,8 +293,6 @@ def get_face_lm(_frame):
         Output:
             full_lm (NormalizedLandmarkList): List of detected landmarks
     """
-    mpFaceMesh = mp.solutions.mediapipe.solutions.face_mesh
-    faceMesh = mpFaceMesh.FaceMesh(static_image_mode = False, max_num_faces=1, refine_landmarks = True) 
     rgbFrame = cv2.cvtColor(_frame, cv2.COLOR_BGR2RGB) # color conversion
     
     _frame.flags.writeable = False # improve perf
@@ -768,8 +765,6 @@ class ModalTimerOperator(bpy.types.Operator):
                 self.x_hat_prev_face = copy.deepcopy(smooth_lm) 
                 self.dx_hat_prev_face = copy.deepcopy(dx_list)
 
-                mpDraw = mp.solutions.mediapipe.solutions.drawing_utils
-                mpFaceMesh = mp.solutions.mediapipe.solutions.face_mesh
                 mpDraw.draw_landmarks(flipped, create_normalized_landmark_list(smooth_lm), mpFaceMesh.FACEMESH_CONTOURS,
                                  mpDraw.DrawingSpec(thickness = 1, circle_radius= 1, color = (0,255,0)), mpDraw.DrawingSpec(thickness = 1, color = (0,0,255)))
 
